@@ -6,7 +6,13 @@ import { SignOutButton } from "./SignOutButton";
 import { useConvexAuth } from "convex/react";
 import { Id } from "../convex/_generated/dataModel";
 
-function StarRating({ rating, onRate }: { rating: number | null, onRate: (rating: number) => void }) {
+function StarRating({
+  rating,
+  onRate,
+}: {
+  rating: number | null;
+  onRate: (rating: number) => void;
+}) {
   return (
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((star) => (
@@ -25,15 +31,21 @@ function StarRating({ rating, onRate }: { rating: number | null, onRate: (rating
 function BookCard({ book }: { book: any }) {
   const { isAuthenticated } = useConvexAuth();
   const userRating = useQuery(api.books.getRating, { bookId: book._id });
-  const averageRating = useQuery(api.books.getAverageRating, { bookId: book._id });
+  const averageRating = useQuery(api.books.getAverageRating, {
+    bookId: book._id,
+  });
   const rate = useMutation(api.books.rate);
-  const reviews = useQuery(api.books.getBookReviews, { bookId: book._id }) ?? [];
+  const removeBook = useMutation(api.books.remove); // Added remove mutation
+  const reviews =
+    useQuery(api.books.getBookReviews, { bookId: book._id }) ?? [];
   const isAdmin = useQuery(api.admin.isAdmin);
   const deleteBook = useMutation(api.admin.deleteBook);
 
   const [isEditing, setIsEditing] = useState(false);
   const [notes, setNotes] = useState(userRating?.notes ?? "");
-  const [finishedDate, setFinishedDate] = useState(userRating?.finishedDate ?? "");
+  const [finishedDate, setFinishedDate] = useState(
+    userRating?.finishedDate ?? ""
+  );
 
   const handleRate = async (rating: number) => {
     await rate({
@@ -47,7 +59,7 @@ function BookCard({ book }: { book: any }) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!userRating?.rating) return;
-    
+
     await rate({
       bookId: book._id,
       rating: userRating.rating,
@@ -57,20 +69,28 @@ function BookCard({ book }: { book: any }) {
     setIsEditing(false);
   };
 
+  const handleRemove = async () => {
+    if (confirm("Are you sure you want to remove this book?")) {
+      await removeBook({ bookId: book._id });
+    }
+  };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-md space-y-4">
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-xl font-bold">{book.title}</h3>
           <p className="text-gray-600">by {book.author}</p>
-          {book.pages && <p className="text-sm text-gray-500">{book.pages} pages</p>}
+          {book.pages && (
+            <p className="text-sm text-gray-500">{book.pages} pages</p>
+          )}
         </div>
         {isAdmin && (
           <button
-            onClick={() => deleteBook({ bookId: book._id })}
+            onClick={handleRemove}
             className="text-red-500 hover:text-red-700"
           >
-            Delete
+            Remove
           </button>
         )}
       </div>
@@ -78,7 +98,10 @@ function BookCard({ book }: { book: any }) {
       {isAuthenticated && (
         <div className="space-y-2">
           <div className="flex items-center gap-4">
-            <StarRating rating={userRating?.rating ?? null} onRate={handleRate} />
+            <StarRating
+              rating={userRating?.rating ?? null}
+              onRate={handleRate}
+            />
             <button
               onClick={() => setIsEditing(!isEditing)}
               className="text-blue-500 hover:text-blue-700 text-sm"
@@ -90,7 +113,9 @@ function BookCard({ book }: { book: any }) {
           {isEditing && (
             <form onSubmit={handleSubmit} className="space-y-2">
               <div>
-                <label className="block text-sm text-gray-600">Finished Date</label>
+                <label className="block text-sm text-gray-600">
+                  Finished Date
+                </label>
                 <input
                   type="date"
                   value={finishedDate}
@@ -120,7 +145,8 @@ function BookCard({ book }: { book: any }) {
 
       <div className="mt-4">
         <p className="text-sm text-gray-600">
-          Average Rating: {averageRating ? averageRating.toFixed(1) : "No ratings"}
+          Average Rating:{" "}
+          {averageRating ? averageRating.toFixed(1) : "No ratings"}
         </p>
       </div>
 
@@ -130,14 +156,18 @@ function BookCard({ book }: { book: any }) {
           <div key={review._id} className="border-t pt-2">
             <div className="flex items-center gap-2">
               <span className="font-medium">{review.profile?.name}</span>
-              <span className="text-yellow-400">{"★".repeat(review.rating)}</span>
+              <span className="text-yellow-400">
+                {"★".repeat(review.rating)}
+              </span>
               {review.finishedDate && (
                 <span className="text-sm text-gray-500">
                   Finished: {new Date(review.finishedDate).toLocaleDateString()}
                 </span>
               )}
             </div>
-            {review.notes && <p className="text-gray-600 mt-1">{review.notes}</p>}
+            {review.notes && (
+              <p className="text-gray-600 mt-1">{review.notes}</p>
+            )}
           </div>
         ))}
       </div>
@@ -164,7 +194,10 @@ function AddBookForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-lg shadow-md">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 bg-white p-6 rounded-lg shadow-md"
+    >
       <div>
         <label className="block text-sm font-medium text-gray-700">Title</label>
         <input
@@ -176,7 +209,9 @@ function AddBookForm() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">Author</label>
+        <label className="block text-sm font-medium text-gray-700">
+          Author
+        </label>
         <input
           type="text"
           value={author}
@@ -215,7 +250,9 @@ function AdminPanel() {
       setEmail("");
       alert("Successfully made user an admin");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to make user an admin");
+      alert(
+        error instanceof Error ? error.message : "Failed to make user an admin"
+      );
     }
   };
 
@@ -249,7 +286,9 @@ function AdminPanel() {
 export function App() {
   const { isAuthenticated } = useConvexAuth();
   const isAdmin = useQuery(api.admin.isAdmin);
-  const [sortBy, setSortBy] = useState<"title" | "author" | "rating" | "finished">("title");
+  const [sortBy, setSortBy] = useState<
+    "title" | "author" | "rating" | "finished"
+  >("title");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const books = useQuery(api.books.list, { sortBy, sortOrder }) ?? [];
 
